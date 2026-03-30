@@ -1,54 +1,208 @@
-import { useState, useRef, useEffect } from 'react';
-import { UploadCloud, CheckCircle, AlertCircle, Loader2, Download, Search, ChevronDown, Globe } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  AlertCircle,
+  CheckCircle,
+  ChevronDown,
+  Download,
+  Globe,
+  Loader2,
+  Search,
+  UploadCloud,
+} from 'lucide-react';
 import { GoogleGenAI } from '@google/genai';
 import { cn } from './lib/utils';
 import 'flag-icons/css/flag-icons.min.css';
 
-const LANGUAGES = [
-  { code: 'en', name: 'Inglês', flag: 'us' },
-  { code: 'es', name: 'Espanhol', flag: 'es' },
-  { code: 'fr', name: 'Francês', flag: 'fr' },
-  { code: 'de', name: 'Alemão', flag: 'de' },
-  { code: 'it', name: 'Italiano', flag: 'it' },
-  { code: 'pt-BR', name: 'Português (Brasil)', flag: 'br' },
-  { code: 'pt-PT', name: 'Português (Portugal)', flag: 'pt' },
-  { code: 'zh-CN', name: 'Chinês (Simplificado)', flag: 'cn' },
-  { code: 'zh-TW', name: 'Chinês (Tradicional)', flag: 'tw' },
-  { code: 'ja', name: 'Japonês', flag: 'jp' },
-  { code: 'ko', name: 'Coreano', flag: 'kr' },
-  { code: 'ru', name: 'Russo', flag: 'ru' },
-  { code: 'ar', name: 'Árabe', flag: 'sa' },
+type UiLocale = 'en' | 'pt-BR';
+
+type TranslationJob = {
+  id: string;
+  sourceText: string;
+  applyTranslation: (translatedText: string) => void;
+};
+
+type LanguageOption = {
+  code: string;
+  name: string;
+  flag: string;
+};
+
+const TARGET_LANGUAGES: LanguageOption[] = [
+  { code: 'en', name: 'English', flag: 'us' },
+  { code: 'es', name: 'Spanish', flag: 'es' },
+  { code: 'fr', name: 'French', flag: 'fr' },
+  { code: 'de', name: 'German', flag: 'de' },
+  { code: 'it', name: 'Italian', flag: 'it' },
+  { code: 'pt-BR', name: 'Portuguese (Brazil)', flag: 'br' },
+  { code: 'pt-PT', name: 'Portuguese (Portugal)', flag: 'pt' },
+  { code: 'zh-CN', name: 'Chinese (Simplified)', flag: 'cn' },
+  { code: 'zh-TW', name: 'Chinese (Traditional)', flag: 'tw' },
+  { code: 'ja', name: 'Japanese', flag: 'jp' },
+  { code: 'ko', name: 'Korean', flag: 'kr' },
+  { code: 'ru', name: 'Russian', flag: 'ru' },
+  { code: 'ar', name: 'Arabic', flag: 'sa' },
   { code: 'hi', name: 'Hindi', flag: 'in' },
-  { code: 'nl', name: 'Holandês', flag: 'nl' },
-  { code: 'tr', name: 'Turco', flag: 'tr' },
-  { code: 'sv', name: 'Sueco', flag: 'se' },
-  { code: 'pl', name: 'Polonês', flag: 'pl' },
-  { code: 'id', name: 'Indonésio', flag: 'id' },
-  { code: 'vi', name: 'Vietnamita', flag: 'vn' },
-  { code: 'th', name: 'Tailandês', flag: 'th' },
-  { code: 'cs', name: 'Tcheco', flag: 'cz' },
-  { code: 'da', name: 'Dinamarquês', flag: 'dk' },
-  { code: 'fi', name: 'Finlandês', flag: 'fi' },
-  { code: 'el', name: 'Grego', flag: 'gr' },
-  { code: 'he', name: 'Hebraico', flag: 'il' },
-  { code: 'hu', name: 'Húngaro', flag: 'hu' },
-  { code: 'no', name: 'Norueguês', flag: 'no' },
-  { code: 'ro', name: 'Romeno', flag: 'ro' },
-  { code: 'sk', name: 'Eslovaco', flag: 'sk' },
-  { code: 'uk', name: 'Ucraniano', flag: 'ua' },
-  { code: 'ms', name: 'Malaio', flag: 'my' },
-  { code: 'bg', name: 'Búlgaro', flag: 'bg' },
-  { code: 'hr', name: 'Croata', flag: 'hr' },
-  { code: 'lt', name: 'Lituano', flag: 'lt' },
-  { code: 'sl', name: 'Esloveno', flag: 'si' },
-  { code: 'et', name: 'Estoniano', flag: 'ee' },
-  { code: 'lv', name: 'Letão', flag: 'lv' },
-  { code: 'sr', name: 'Sérvio', flag: 'rs' },
+  { code: 'nl', name: 'Dutch', flag: 'nl' },
+  { code: 'tr', name: 'Turkish', flag: 'tr' },
+  { code: 'sv', name: 'Swedish', flag: 'se' },
+  { code: 'pl', name: 'Polish', flag: 'pl' },
+  { code: 'id', name: 'Indonesian', flag: 'id' },
+  { code: 'vi', name: 'Vietnamese', flag: 'vn' },
+  { code: 'th', name: 'Thai', flag: 'th' },
+  { code: 'cs', name: 'Czech', flag: 'cz' },
+  { code: 'da', name: 'Danish', flag: 'dk' },
+  { code: 'fi', name: 'Finnish', flag: 'fi' },
+  { code: 'el', name: 'Greek', flag: 'gr' },
+  { code: 'he', name: 'Hebrew', flag: 'il' },
+  { code: 'hu', name: 'Hungarian', flag: 'hu' },
+  { code: 'no', name: 'Norwegian', flag: 'no' },
+  { code: 'ro', name: 'Romanian', flag: 'ro' },
+  { code: 'sk', name: 'Slovak', flag: 'sk' },
+  { code: 'uk', name: 'Ukrainian', flag: 'ua' },
+  { code: 'ms', name: 'Malay', flag: 'my' },
+  { code: 'bg', name: 'Bulgarian', flag: 'bg' },
+  { code: 'hr', name: 'Croatian', flag: 'hr' },
+  { code: 'lt', name: 'Lithuanian', flag: 'lt' },
+  { code: 'sl', name: 'Slovenian', flag: 'si' },
+  { code: 'et', name: 'Estonian', flag: 'ee' },
+  { code: 'lv', name: 'Latvian', flag: 'lv' },
+  { code: 'sr', name: 'Serbian', flag: 'rs' },
 ];
 
-async function translateBatch(texts: Record<string, string>, targetLang: string, apiKey: string) {
+const UI_LOCALES: Array<{ code: UiLocale; label: string }> = [
+  { code: 'en', label: 'English' },
+  { code: 'pt-BR', label: 'Português (Brasil)' },
+];
+
+const COPY: Record<
+  UiLocale,
+  {
+    appTitle: string;
+    appSubtitle: string;
+    uiLanguageLabel: string;
+    byokTitle: string;
+    byokDescription: string;
+    apiKeyPlaceholder: string;
+    localStorageNote: string;
+    clearKey: string;
+    uploadTitle: string;
+    uploadPrompt: string;
+    uploadHelp: string;
+    replaceFile: string;
+    invalidFileAlert: string;
+    targetLanguageTitle: string;
+    searchLanguagePlaceholder: string;
+    noLanguagesFound: string;
+    translateTitle: string;
+    startTranslation: string;
+    translating: string;
+    progressDone: string;
+    translationErrorTitle: string;
+    tryAgain: string;
+    successTitle: string;
+    successBody: string;
+    downloadButton: string;
+    translateAnotherFile: string;
+    missingApiKey: string;
+    readingFile: string;
+    invalidXml: string;
+    noTextFound: string;
+    finishingFile: string;
+    translationDone: string;
+    translationFailed: string;
+    emptyResponse: string;
+    quotaError: string;
+    apiCallFailed: string;
+    batchStatus: string;
+  }
+> = {
+  en: {
+    appTitle: 'Storyline XLIFF Translator',
+    appSubtitle: 'Translate Storyline XLIFF files with Google Gemini in bring your own key mode',
+    uiLanguageLabel: 'App language',
+    byokTitle: 'Enter your Gemini API key',
+    byokDescription: 'This app runs fully in the browser and uses your own Gemini key for translation.',
+    apiKeyPlaceholder: 'Paste your Gemini API key here',
+    localStorageNote: 'Your key is stored only in this browser via localStorage and used directly by the frontend.',
+    clearKey: 'Clear key',
+    uploadTitle: 'Upload your XLIFF file',
+    uploadPrompt: 'Click or drag your file here',
+    uploadHelp: 'Supports Articulate Storyline .xlf and .xliff files',
+    replaceFile: 'Replace file',
+    invalidFileAlert: 'Please upload a .xlf or .xliff file.',
+    targetLanguageTitle: 'Choose the target language',
+    searchLanguagePlaceholder: 'Search language...',
+    noLanguagesFound: 'No languages found',
+    translateTitle: 'Translate and download',
+    startTranslation: 'Start translation to {language}',
+    translating: 'Translating',
+    progressDone: '{progress}% complete',
+    translationErrorTitle: 'Translation error',
+    tryAgain: 'Try again',
+    successTitle: 'Translation complete',
+    successBody: 'Your file was translated to {language}.',
+    downloadButton: 'Download translated file',
+    translateAnotherFile: 'Translate another file',
+    missingApiKey: 'Enter a Gemini API key before translating.',
+    readingFile: 'Reading file...',
+    invalidXml: 'The uploaded file is not valid XML/XLIFF.',
+    noTextFound: 'No translatable text was found in the file.',
+    finishingFile: 'Finalizing file...',
+    translationDone: 'Translation completed successfully.',
+    translationFailed: 'Translation failed.',
+    emptyResponse: 'Empty response from Gemini.',
+    quotaError: 'Gemini API returned 429: this key has exceeded its quota or spending cap.',
+    apiCallFailed: 'Failed to call the Gemini API.',
+    batchStatus: 'Translating batches {start} to {end} of {total}...',
+  },
+  'pt-BR': {
+    appTitle: 'Storyline XLIFF Translator',
+    appSubtitle: 'Traduza arquivos XLIFF do Storyline com Google Gemini no modo bring your own key',
+    uiLanguageLabel: 'Idioma do app',
+    byokTitle: 'Informe sua chave da API Gemini',
+    byokDescription: 'Este app roda totalmente no navegador e usa a sua própria chave Gemini para traduzir.',
+    apiKeyPlaceholder: 'Cole aqui sua chave da API Gemini',
+    localStorageNote: 'Sua chave fica salva apenas neste navegador via localStorage e é usada diretamente pelo frontend.',
+    clearKey: 'Limpar chave',
+    uploadTitle: 'Envie seu arquivo XLIFF',
+    uploadPrompt: 'Clique ou arraste seu arquivo aqui',
+    uploadHelp: 'Suporta arquivos .xlf e .xliff do Articulate Storyline',
+    replaceFile: 'Trocar arquivo',
+    invalidFileAlert: 'Por favor, envie um arquivo .xlf ou .xliff.',
+    targetLanguageTitle: 'Escolha o idioma de destino',
+    searchLanguagePlaceholder: 'Pesquisar idioma...',
+    noLanguagesFound: 'Nenhum idioma encontrado',
+    translateTitle: 'Traduzir e baixar',
+    startTranslation: 'Iniciar tradução para {language}',
+    translating: 'Traduzindo',
+    progressDone: '{progress}% concluído',
+    translationErrorTitle: 'Erro na tradução',
+    tryAgain: 'Tentar novamente',
+    successTitle: 'Tradução concluída',
+    successBody: 'Seu arquivo foi traduzido para {language}.',
+    downloadButton: 'Baixar arquivo traduzido',
+    translateAnotherFile: 'Traduzir outro arquivo',
+    missingApiKey: 'Informe uma chave da API Gemini antes de traduzir.',
+    readingFile: 'Lendo arquivo...',
+    invalidXml: 'O arquivo enviado não é um XML/XLIFF válido.',
+    noTextFound: 'Nenhum texto traduzível foi encontrado no arquivo.',
+    finishingFile: 'Finalizando arquivo...',
+    translationDone: 'Tradução concluída com sucesso.',
+    translationFailed: 'A tradução falhou.',
+    emptyResponse: 'Resposta vazia do Gemini.',
+    quotaError: 'A API Gemini respondeu 429: esta chave excedeu a cota ou o limite de gastos.',
+    apiCallFailed: 'Falha ao chamar a API Gemini.',
+    batchStatus: 'Traduzindo lotes {start} a {end} de {total}...',
+  },
+};
+
+function formatMessage(template: string, values: Record<string, string | number>) {
+  return template.replace(/\{(\w+)\}/g, (_, key) => String(values[key] ?? ''));
+}
+
+async function translateBatch(texts: Record<string, string>, targetLang: string, apiKey: string, uiCopy: typeof COPY.en) {
   const ai = new GoogleGenAI({ apiKey });
-  
+
   const prompt = `You are an expert translator for e-learning content. Translate the following text values into ${targetLang}.
 CRITICAL RULES:
 1. Return a JSON object with the exact same keys as the input.
@@ -67,9 +221,9 @@ ${JSON.stringify(texts)}
       contents: prompt,
       config: {
         responseMimeType: 'application/json',
-      }
+      },
     });
-    
+
     let text = response.text;
     if (text) {
       text = text.trim();
@@ -78,24 +232,19 @@ ${JSON.stringify(texts)}
       } else if (text.startsWith('```')) {
         text = text.replace(/^```\n?/, '').replace(/\n?```$/, '');
       }
-      return JSON.parse(text);
+      return JSON.parse(text) as Record<string, string>;
     }
-    throw new Error("Resposta vazia da IA");
-  } catch (e) {
-    console.error("Translation error", e);
-    const error = e as { status?: number; message?: string };
-    if (error?.status === 429) {
-      throw new Error('A API do Gemini respondeu 429: o projeto excedeu o limite de gastos/cota.');
+
+    throw new Error(uiCopy.emptyResponse);
+  } catch (error) {
+    console.error('Translation error', error);
+    const typedError = error as { status?: number; message?: string };
+    if (typedError?.status === 429) {
+      throw new Error(uiCopy.quotaError);
     }
-    throw new Error(error?.message || 'Falha ao chamar a API do Gemini.');
+    throw new Error(typedError?.message || uiCopy.apiCallFailed);
   }
 }
-
-type TranslationJob = {
-  id: string;
-  sourceText: string;
-  applyTranslation: (translatedText: string) => void;
-};
 
 function syncElementAttributes(source: Element, target: Element) {
   while (target.attributes.length > 0) {
@@ -201,7 +350,17 @@ function buildTranslationJobs(doc: Document, transUnits: Element[]) {
   return jobs;
 }
 
-function LanguageSelector({ selected, onChange }: { selected: typeof LANGUAGES[0], onChange: (lang: typeof LANGUAGES[0]) => void }) {
+function LanguageSelector({
+  selected,
+  onChange,
+  searchPlaceholder,
+  emptyState,
+}: {
+  selected: LanguageOption;
+  onChange: (lang: LanguageOption) => void;
+  searchPlaceholder: string;
+  emptyState: string;
+}) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -212,21 +371,26 @@ function LanguageSelector({ selected, onChange }: { selected: typeof LANGUAGES[0
         setIsOpen(false);
       }
     }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const filtered = LANGUAGES.filter(l => l.name.toLowerCase().includes(search.toLowerCase()) || l.code.toLowerCase().includes(search.toLowerCase()));
+  const filtered = TARGET_LANGUAGES.filter(
+    (language) =>
+      language.name.toLowerCase().includes(search.toLowerCase()) ||
+      language.code.toLowerCase().includes(search.toLowerCase()),
+  );
 
   return (
     <div className="relative w-full" ref={dropdownRef}>
       <button
         type="button"
         className="w-full flex items-center justify-between px-4 py-3 bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => setIsOpen((value) => !value)}
       >
         <div className="flex items-center gap-3">
-          <span className={`fi fi-${selected.flag} text-xl rounded-sm overflow-hidden`}></span>
+          <span className={`fi fi-${selected.flag} text-xl rounded-sm overflow-hidden`} />
           <span className="font-medium text-gray-700">{selected.name}</span>
         </div>
         <ChevronDown className="w-5 h-5 text-gray-400" />
@@ -240,33 +404,33 @@ function LanguageSelector({ selected, onChange }: { selected: typeof LANGUAGES[0
               <input
                 type="text"
                 className="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                placeholder="Pesquisar idioma..."
+                placeholder={searchPlaceholder}
                 value={search}
-                onChange={e => setSearch(e.target.value)}
-                onClick={e => e.stopPropagation()}
+                onChange={(event) => setSearch(event.target.value)}
+                onClick={(event) => event.stopPropagation()}
               />
             </div>
           </div>
           <div className="overflow-y-auto p-1">
             {filtered.length === 0 ? (
-              <div className="px-4 py-3 text-sm text-gray-500 text-center">Nenhum idioma encontrado</div>
+              <div className="px-4 py-3 text-sm text-gray-500 text-center">{emptyState}</div>
             ) : (
-              filtered.map(lang => (
+              filtered.map((language) => (
                 <button
-                  key={lang.code}
+                  key={language.code}
                   className={cn(
-                    "w-full flex items-center gap-3 px-3 py-2 text-left rounded-md hover:bg-blue-50 transition-colors",
-                    selected.code === lang.code ? "bg-blue-50 text-blue-700" : "text-gray-700"
+                    'w-full flex items-center gap-3 px-3 py-2 text-left rounded-md hover:bg-blue-50 transition-colors',
+                    selected.code === language.code ? 'bg-blue-50 text-blue-700' : 'text-gray-700',
                   )}
                   onClick={() => {
-                    onChange(lang);
+                    onChange(language);
                     setIsOpen(false);
                     setSearch('');
                   }}
                 >
-                  <span className={`fi fi-${lang.flag} text-lg rounded-sm overflow-hidden`}></span>
-                  <span className="font-medium">{lang.name}</span>
-                  <span className="ml-auto text-xs text-gray-400">{lang.code}</span>
+                  <span className={`fi fi-${language.flag} text-lg rounded-sm overflow-hidden`} />
+                  <span className="font-medium">{language.name}</span>
+                  <span className="ml-auto text-xs text-gray-400">{language.code}</span>
                 </button>
               ))
             )}
@@ -278,8 +442,12 @@ function LanguageSelector({ selected, onChange }: { selected: typeof LANGUAGES[0
 }
 
 export default function App() {
+  const [uiLocale, setUiLocale] = useState<UiLocale>(() => {
+    const stored = localStorage.getItem('ui_locale');
+    return stored === 'pt-BR' ? 'pt-BR' : 'en';
+  });
   const [file, setFile] = useState<File | null>(null);
-  const [targetLang, setTargetLang] = useState(LANGUAGES[0]);
+  const [targetLang, setTargetLang] = useState<LanguageOption>(TARGET_LANGUAGES[0]);
   const [apiKey, setApiKey] = useState(() => localStorage.getItem('gemini_api_key') ?? '');
   const [isTranslating, setIsTranslating] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -287,220 +455,310 @@ export default function App() {
   const [translatedFileUrl, setTranslatedFileUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const copy = COPY[uiLocale];
+
   useEffect(() => {
     localStorage.setItem('gemini_api_key', apiKey);
   }, [apiKey]);
 
-  const handleTranslate = async () => {
-    if (!file) return;
-    if (!apiKey.trim()) {
-      setError('Informe uma chave da API Gemini para traduzir.');
+  useEffect(() => {
+    localStorage.setItem('ui_locale', uiLocale);
+    document.documentElement.lang = uiLocale;
+  }, [uiLocale]);
+
+  useEffect(() => {
+    return () => {
+      if (translatedFileUrl) {
+        URL.revokeObjectURL(translatedFileUrl);
+      }
+    };
+  }, [translatedFileUrl]);
+
+  const startButtonLabel = useMemo(
+    () => formatMessage(copy.startTranslation, { language: targetLang.name }),
+    [copy.startTranslation, targetLang.name],
+  );
+
+  const successBody = useMemo(
+    () => formatMessage(copy.successBody, { language: targetLang.name }),
+    [copy.successBody, targetLang.name],
+  );
+
+  async function handleTranslate() {
+    if (!file) {
       return;
     }
+
+    if (!apiKey.trim()) {
+      setError(copy.missingApiKey);
+      return;
+    }
+
     setIsTranslating(true);
     setProgress(0);
-    setStatusText('Lendo arquivo...');
+    setStatusText(copy.readingFile);
     setError(null);
-    
+
     try {
       const text = await file.text();
       const parser = new DOMParser();
       const doc = parser.parseFromString(text, 'application/xml');
-      
+
       if (doc.getElementsByTagName('parsererror').length > 0) {
-        throw new Error("O arquivo não é um XML/XLIFF válido.");
+        throw new Error(copy.invalidXml);
       }
 
-      // Set target-language
       const fileNodes = doc.getElementsByTagName('file');
-      for (let i = 0; i < fileNodes.length; i++) {
-        fileNodes[i].setAttribute('target-language', targetLang.code);
+      for (let index = 0; index < fileNodes.length; index += 1) {
+        fileNodes[index].setAttribute('target-language', targetLang.code);
       }
 
       const transUnits = Array.from(doc.getElementsByTagName('trans-unit'));
-      const toTranslate = buildTranslationJobs(doc, transUnits);
+      const jobs = buildTranslationJobs(doc, transUnits);
 
-      if (toTranslate.length === 0) {
-        throw new Error("Nenhum texto encontrado para traduzir no arquivo.");
+      if (jobs.length === 0) {
+        throw new Error(copy.noTextFound);
       }
 
-      const BATCH_SIZE = 50;
-      const CONCURRENCY = 3;
-      const totalBatches = Math.ceil(toTranslate.length / BATCH_SIZE);
-      
+      const batchSize = 50;
+      const concurrency = 3;
+      const totalBatches = Math.ceil(jobs.length / batchSize);
       let completedBatches = 0;
-      
-      for (let i = 0; i < totalBatches; i += CONCURRENCY) {
-        const currentBatches = [];
-        for (let j = 0; j < CONCURRENCY && i + j < totalBatches; j++) {
-          currentBatches.push(toTranslate.slice((i + j) * BATCH_SIZE, (i + j + 1) * BATCH_SIZE));
+
+      for (let batchIndex = 0; batchIndex < totalBatches; batchIndex += concurrency) {
+        const currentBatches: TranslationJob[][] = [];
+
+        for (
+          let concurrentIndex = 0;
+          concurrentIndex < concurrency && batchIndex + concurrentIndex < totalBatches;
+          concurrentIndex += 1
+        ) {
+          currentBatches.push(
+            jobs.slice((batchIndex + concurrentIndex) * batchSize, (batchIndex + concurrentIndex + 1) * batchSize),
+          );
         }
-        
-        setStatusText(`Traduzindo lotes ${i + 1} a ${i + currentBatches.length} de ${totalBatches}...`);
-        
-        const batchPromises = currentBatches.map(async (batch) => {
-          const batchPayload: Record<string, string> = {};
-          batch.forEach(item => {
-            batchPayload[item.id] = item.sourceText;
-          });
-          
-          const translatedBatch = await translateBatch(batchPayload, targetLang.name, apiKey.trim());
-          return { batch, translatedBatch };
-        });
-        
-        const results = await Promise.all(batchPromises);
-        
-        for (const { batch, translatedBatch } of results) {
-          for (const item of batch) {
+
+        setStatusText(
+          formatMessage(copy.batchStatus, {
+            start: batchIndex + 1,
+            end: batchIndex + currentBatches.length,
+            total: totalBatches,
+          }),
+        );
+
+        const results = await Promise.all(
+          currentBatches.map(async (batch) => {
+            const payload: Record<string, string> = {};
+            batch.forEach((item) => {
+              payload[item.id] = item.sourceText;
+            });
+
+            const translatedBatch = await translateBatch(payload, targetLang.name, apiKey.trim(), copy);
+            return { batch, translatedBatch };
+          }),
+        );
+
+        results.forEach(({ batch, translatedBatch }) => {
+          batch.forEach((item) => {
             item.applyTranslation(translatedBatch[item.id] ?? item.sourceText);
-          }
-        }
-        
+          });
+        });
+
         completedBatches += currentBatches.length;
         setProgress((completedBatches / totalBatches) * 100);
       }
-      
-      setStatusText('Finalizando arquivo...');
+
+      setStatusText(copy.finishingFile);
       setProgress(100);
-      
+
       const serializer = new XMLSerializer();
       const finalXml = serializer.serializeToString(doc);
-      
       const blob = new Blob([finalXml], { type: 'application/x-xliff+xml' });
-      const url = URL.createObjectURL(blob);
-      setTranslatedFileUrl(url);
-      setStatusText('Tradução concluída com sucesso!');
-      
-    } catch (err: any) {
-      console.error(err);
-      setError(err.message || 'Ocorreu um erro durante a tradução.');
-      setStatusText('Erro na tradução.');
+      const nextUrl = URL.createObjectURL(blob);
+
+      setTranslatedFileUrl((currentUrl) => {
+        if (currentUrl) {
+          URL.revokeObjectURL(currentUrl);
+        }
+        return nextUrl;
+      });
+      setStatusText(copy.translationDone);
+    } catch (caughtError) {
+      console.error(caughtError);
+      const message = caughtError instanceof Error ? caughtError.message : copy.translationFailed;
+      setError(message);
+      setStatusText(copy.translationFailed);
     } finally {
       setIsTranslating(false);
     }
-  };
+  }
+
+  function resetCurrentFile() {
+    setFile(null);
+    setTranslatedFileUrl((currentUrl) => {
+      if (currentUrl) {
+        URL.revokeObjectURL(currentUrl);
+      }
+      return null;
+    });
+    setProgress(0);
+  }
+
+  function handleIncomingFile(nextFile: File) {
+    if (!nextFile.name.endsWith('.xlf') && !nextFile.name.endsWith('.xliff')) {
+      alert(copy.invalidFileAlert);
+      return;
+    }
+
+    setFile(nextFile);
+    setTranslatedFileUrl((currentUrl) => {
+      if (currentUrl) {
+        URL.revokeObjectURL(currentUrl);
+      }
+      return null;
+    });
+    setError(null);
+    setProgress(0);
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col font-sans">
       <header className="bg-white border-b border-gray-200 px-6 py-4 shadow-sm">
-        <div className="max-w-4xl mx-auto flex items-center gap-3">
-          <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center text-white shadow-md">
-            <Globe className="w-6 h-6" />
+        <div className="max-w-4xl mx-auto flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
+          <div className="flex items-center gap-4 min-w-0">
+            <div className="w-12 h-12 shrink-0 rounded-2xl bg-gradient-to-br from-sky-400 via-blue-500 to-slate-900 p-[1px] shadow-lg shadow-blue-100">
+              <div className="flex h-full w-full items-center justify-center rounded-2xl bg-slate-950 text-white">
+                <Globe className="w-6 h-6" />
+              </div>
+            </div>
+            <div className="min-w-0">
+              <h1 className="text-xl font-bold leading-tight text-gray-900 sm:text-2xl">{copy.appTitle}</h1>
+              <p className="mt-1 max-w-2xl text-sm leading-6 text-gray-500">{copy.appSubtitle}</p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-xl font-bold text-gray-900">Storyline XLIFF Translator</h1>
-            <p className="text-sm text-gray-500">Tradução automática com Google Gemini AI</p>
+
+          <div className="w-full md:w-52 md:shrink-0">
+            <label className="block text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">
+              {copy.uiLanguageLabel}
+            </label>
+            <select
+              value={uiLocale}
+              onChange={(event) => setUiLocale(event.target.value as UiLocale)}
+              className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              {UI_LOCALES.map((locale) => (
+                <option key={locale.code} value={locale.code}>
+                  {locale.label}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
       </header>
 
       <main className="flex-1 max-w-4xl w-full mx-auto p-6 flex flex-col gap-8 mt-4">
         <section className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <span className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 text-blue-700 text-sm">2</span>
-            Informe sua chave Gemini
-          </h2>
+          <h2 className="text-lg font-semibold text-gray-900 mb-2">{copy.byokTitle}</h2>
+          <p className="text-sm text-gray-500 mb-4">{copy.byokDescription}</p>
 
           <div className="space-y-3">
             <input
               type="password"
               value={apiKey}
-              onChange={(e) => {
-                setApiKey(e.target.value);
+              onChange={(event) => {
+                setApiKey(event.target.value);
                 setError(null);
               }}
-              placeholder="Cole aqui sua API key do Gemini"
+              placeholder={copy.apiKeyPlaceholder}
               className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             <div className="flex items-center justify-between gap-4 text-sm">
-              <p className="text-gray-500">
-                A chave fica salva apenas neste navegador via `localStorage` e é usada diretamente pelo front.
-              </p>
+              <p className="text-gray-500">{copy.localStorageNote}</p>
               <button
                 type="button"
                 onClick={() => setApiKey('')}
                 className="text-blue-600 hover:underline font-medium whitespace-nowrap"
               >
-                Limpar chave
+                {copy.clearKey}
               </button>
             </div>
           </div>
         </section>
 
-        {/* Upload Section */}
         <section className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <span className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 text-blue-700 text-sm">1</span>
-            Envie seu arquivo XLIFF
-          </h2>
-          
-          <div 
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">{copy.uploadTitle}</h2>
+
+          <div
             className={cn(
-              "border-2 border-dashed rounded-xl p-10 flex flex-col items-center justify-center transition-colors cursor-pointer",
-              file ? "border-green-400 bg-green-50" : "border-gray-300 hover:border-blue-400 hover:bg-blue-50"
+              'border-2 border-dashed rounded-xl p-10 flex flex-col items-center justify-center transition-colors cursor-pointer',
+              file ? 'border-green-400 bg-green-50' : 'border-gray-300 hover:border-blue-400 hover:bg-blue-50',
             )}
             onClick={() => document.getElementById('file-upload')?.click()}
-            onDragOver={(e) => e.preventDefault()}
-            onDrop={(e) => {
-              e.preventDefault();
-              if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-                const f = e.dataTransfer.files[0];
-                if (f.name.endsWith('.xlf') || f.name.endsWith('.xliff')) {
-                  setFile(f);
-                  setTranslatedFileUrl(null);
-                } else {
-                  alert('Por favor, envie um arquivo .xlf ou .xliff');
-                }
+            onDragOver={(event) => event.preventDefault()}
+            onDrop={(event) => {
+              event.preventDefault();
+              const droppedFile = event.dataTransfer.files?.[0];
+              if (droppedFile) {
+                handleIncomingFile(droppedFile);
               }
             }}
           >
-            <input 
-              id="file-upload" 
-              type="file" 
-              accept=".xlf,.xliff" 
-              className="hidden" 
-              onChange={(e) => {
-                if (e.target.files && e.target.files[0]) {
-                  setFile(e.target.files[0]);
-                  setTranslatedFileUrl(null);
+            <input
+              id="file-upload"
+              type="file"
+              accept=".xlf,.xliff"
+              className="hidden"
+              onChange={(event) => {
+                const chosenFile = event.target.files?.[0];
+                if (chosenFile) {
+                  handleIncomingFile(chosenFile);
                 }
               }}
             />
+
             {file ? (
               <>
                 <CheckCircle className="w-12 h-12 text-green-500 mb-3" />
                 <p className="text-green-800 font-medium text-lg">{file.name}</p>
                 <p className="text-green-600 text-sm mt-1">{(file.size / 1024).toFixed(1)} KB</p>
-                <button className="mt-4 text-sm text-blue-600 hover:underline" onClick={(e) => { e.stopPropagation(); setFile(null); setTranslatedFileUrl(null); }}>
-                  Trocar arquivo
+                <button
+                  className="mt-4 text-sm text-blue-600 hover:underline"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    resetCurrentFile();
+                  }}
+                >
+                  {copy.replaceFile}
                 </button>
               </>
             ) : (
               <>
                 <UploadCloud className="w-12 h-12 text-gray-400 mb-3" />
-                <p className="text-gray-700 font-medium text-lg">Clique ou arraste seu arquivo aqui</p>
-                <p className="text-gray-500 text-sm mt-1">Suporta arquivos .xlf e .xliff do Articulate Storyline</p>
+                <p className="text-gray-700 font-medium text-lg">{copy.uploadPrompt}</p>
+                <p className="text-gray-500 text-sm mt-1">{copy.uploadHelp}</p>
               </>
             )}
           </div>
         </section>
 
-        {/* Language Selection */}
-        <section className={cn("bg-white rounded-2xl shadow-sm border border-gray-200 p-8 transition-opacity", !file && "opacity-50 pointer-events-none")}>
-          <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <span className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 text-blue-700 text-sm">3</span>
-            Escolha o idioma de destino
-          </h2>
-          <LanguageSelector selected={targetLang} onChange={setTargetLang} />
+        <section className={cn('bg-white rounded-2xl shadow-sm border border-gray-200 p-8 transition-opacity', !file && 'opacity-50 pointer-events-none')}>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">{copy.targetLanguageTitle}</h2>
+          <LanguageSelector
+            selected={targetLang}
+            onChange={setTargetLang}
+            searchPlaceholder={copy.searchLanguagePlaceholder}
+            emptyState={copy.noLanguagesFound}
+          />
         </section>
 
-        {/* Translation Action */}
-        <section className={cn("bg-white rounded-2xl shadow-sm border border-gray-200 p-8 transition-opacity", (!file || !apiKey.trim()) && "opacity-50 pointer-events-none")}>
-          <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <span className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 text-blue-700 text-sm">4</span>
-            Traduzir e Baixar
-          </h2>
-          
+        <section
+          className={cn(
+            'bg-white rounded-2xl shadow-sm border border-gray-200 p-8 transition-opacity',
+            (!file || !apiKey.trim()) && 'opacity-50 pointer-events-none',
+          )}
+        >
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">{copy.translateTitle}</h2>
+
           {!isTranslating && !translatedFileUrl && (
             <button
               onClick={handleTranslate}
@@ -508,18 +766,23 @@ export default function App() {
               className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-lg transition-colors shadow-md flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Globe className="w-5 h-5" />
-              Iniciar Tradução para {targetLang.name}
+              {startButtonLabel}
             </button>
           )}
 
           {isTranslating && (
             <div className="w-full p-6 bg-blue-50 rounded-xl border border-blue-100 flex flex-col items-center justify-center">
               <Loader2 className="w-10 h-10 text-blue-600 animate-spin mb-4" />
-              <p className="text-blue-900 font-medium text-lg mb-2">{statusText}</p>
+              <p className="text-blue-900 font-medium text-lg mb-2">{statusText || copy.translating}</p>
               <div className="w-full max-w-md bg-blue-200 rounded-full h-2.5 mb-1 overflow-hidden">
-                <div className="bg-blue-600 h-2.5 rounded-full transition-all duration-300 ease-out" style={{ width: `${progress}%` }}></div>
+                <div
+                  className="bg-blue-600 h-2.5 rounded-full transition-all duration-300 ease-out"
+                  style={{ width: `${progress}%` }}
+                />
               </div>
-              <p className="text-blue-700 text-sm font-medium">{Math.round(progress)}% concluído</p>
+              <p className="text-blue-700 text-sm font-medium">
+                {formatMessage(copy.progressDone, { progress: Math.round(progress) })}
+              </p>
             </div>
           )}
 
@@ -527,13 +790,13 @@ export default function App() {
             <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3">
               <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
               <div>
-                <h3 className="text-red-800 font-medium">Erro na tradução</h3>
+                <h3 className="text-red-800 font-medium">{copy.translationErrorTitle}</h3>
                 <p className="text-red-600 text-sm mt-1">{error}</p>
-                <button 
+                <button
                   onClick={() => setError(null)}
                   className="mt-2 text-sm text-red-700 hover:underline font-medium"
                 >
-                  Tentar novamente
+                  {copy.tryAgain}
                 </button>
               </div>
             </div>
@@ -544,27 +807,23 @@ export default function App() {
               <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
                 <CheckCircle className="w-8 h-8 text-green-600" />
               </div>
-              <h3 className="text-green-900 font-bold text-xl mb-2">Tradução Concluída!</h3>
-              <p className="text-green-700 mb-6">Seu arquivo foi traduzido para {targetLang.name} com sucesso.</p>
-              
+              <h3 className="text-green-900 font-bold text-xl mb-2">{copy.successTitle}</h3>
+              <p className="text-green-700 mb-6">{successBody}</p>
+
               <a
                 href={translatedFileUrl}
                 download={`translated_${targetLang.code}_${file?.name}`}
                 className="px-8 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-bold text-lg transition-colors shadow-md flex items-center justify-center gap-2"
               >
                 <Download className="w-5 h-5" />
-                Baixar Arquivo Traduzido
+                {copy.downloadButton}
               </a>
-              
-              <button 
-                onClick={() => {
-                  setFile(null);
-                  setTranslatedFileUrl(null);
-                  setProgress(0);
-                }}
+
+              <button
+                onClick={resetCurrentFile}
                 className="mt-4 text-green-700 hover:underline text-sm font-medium"
               >
-                Traduzir outro arquivo
+                {copy.translateAnotherFile}
               </button>
             </div>
           )}
