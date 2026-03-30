@@ -486,7 +486,7 @@ function LanguageSelector({
       </button>
 
       {isOpen && (
-        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-80 flex flex-col">
+        <div className="absolute left-0 top-full z-50 mt-1 flex max-h-80 w-full flex-col rounded-lg border border-gray-200 bg-white shadow-lg">
           <div className="p-2 border-b border-gray-100">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -928,7 +928,7 @@ export default function App() {
           animate={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
           transition={{ duration: 0.45, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
           className={cn(
-            'rounded-[2rem] border border-slate-200/80 bg-white/85 p-8 shadow-[0_24px_70px_rgba(15,23,42,0.08)] backdrop-blur-xl transition-opacity',
+            'relative z-20 rounded-[2rem] border border-slate-200/80 bg-white/85 p-8 shadow-[0_24px_70px_rgba(15,23,42,0.08)] backdrop-blur-xl transition-opacity',
             !file && 'opacity-60',
           )}
         >
@@ -958,7 +958,7 @@ export default function App() {
           animate={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
           transition={{ duration: 0.45, delay: 0.24, ease: [0.22, 1, 0.36, 1] }}
           className={cn(
-            'rounded-[2rem] border border-slate-200/80 bg-white/90 p-8 shadow-[0_24px_70px_rgba(15,23,42,0.08)] backdrop-blur-xl transition-opacity',
+            'relative z-0 rounded-[2rem] border border-slate-200/80 bg-white/90 p-8 shadow-[0_24px_70px_rgba(15,23,42,0.08)] backdrop-blur-xl transition-opacity',
             (!file || !apiKey.trim()) && 'opacity-80',
           )}
         >
