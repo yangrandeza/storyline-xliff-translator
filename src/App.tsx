@@ -4,12 +4,18 @@ import {
   CheckCircle,
   ChevronDown,
   Download,
+  FileCog,
   Globe,
+  KeyRound,
+  Languages,
   Loader2,
   Search,
+  ShieldCheck,
+  Sparkles,
   UploadCloud,
 } from 'lucide-react';
 import { GoogleGenAI } from '@google/genai';
+import { AnimatePresence, MotionConfig, motion, useReducedMotion } from 'motion/react';
 import { cn } from './lib/utils';
 import 'flag-icons/css/flag-icons.min.css';
 
@@ -79,7 +85,20 @@ const COPY: Record<
   {
     appTitle: string;
     appSubtitle: string;
+    heroBadge: string;
+    trustBrowserOnly: string;
+    trustStructureSafe: string;
+    trustNoFallbacks: string;
     uiLanguageLabel: string;
+    keyInputLabel: string;
+    workflowPanelTitle: string;
+    workflowPanelBody: string;
+    currentOutputLabel: string;
+    languagePanelHint: string;
+    actionPanelTitle: string;
+    actionPanelBody: string;
+    readyLabel: string;
+    pendingLabel: string;
     byokTitle: string;
     byokDescription: string;
     apiKeyPlaceholder: string;
@@ -119,7 +138,20 @@ const COPY: Record<
   en: {
     appTitle: 'Storyline XLIFF Translator',
     appSubtitle: 'Translate Storyline XLIFF files with Google Gemini in bring your own key mode',
+    heroBadge: 'Browser-native localization workflow',
+    trustBrowserOnly: 'Runs fully in the browser',
+    trustStructureSafe: 'Preserves Storyline XLIFF structure',
+    trustNoFallbacks: 'Shows real API failures with no fake success',
     uiLanguageLabel: 'App language',
+    keyInputLabel: 'Gemini API key',
+    workflowPanelTitle: 'Ready-to-run workflow',
+    workflowPanelBody: 'Each step stays visible so the app feels dependable, not mysterious.',
+    currentOutputLabel: 'Current output language',
+    languagePanelHint: 'Choose the output language before sending the translation batches.',
+    actionPanelTitle: 'Translate, verify, download',
+    actionPanelBody: 'The system now keeps the last mile visible: readiness, progress, failure states and the final download stay in one place.',
+    readyLabel: 'Ready',
+    pendingLabel: 'Pending',
     byokTitle: 'Enter your Gemini API key',
     byokDescription: 'This app runs fully in the browser and uses your own Gemini key for translation.',
     apiKeyPlaceholder: 'Paste your Gemini API key here',
@@ -158,7 +190,20 @@ const COPY: Record<
   'pt-BR': {
     appTitle: 'Storyline XLIFF Translator',
     appSubtitle: 'Traduza arquivos XLIFF do Storyline com Google Gemini no modo bring your own key',
+    heroBadge: 'Fluxo de localizacao direto no navegador',
+    trustBrowserOnly: 'Roda totalmente no navegador',
+    trustStructureSafe: 'Preserva a estrutura XLIFF do Storyline',
+    trustNoFallbacks: 'Mostra falhas reais da API sem sucesso falso',
     uiLanguageLabel: 'Idioma do app',
+    keyInputLabel: 'Chave da API Gemini',
+    workflowPanelTitle: 'Fluxo pronto para executar',
+    workflowPanelBody: 'Cada etapa fica visivel para o app parecer confiavel, nao misterioso.',
+    currentOutputLabel: 'Idioma atual de saida',
+    languagePanelHint: 'Escolha o idioma de destino antes de enviar os lotes para traducao.',
+    actionPanelTitle: 'Traduzir, revisar e baixar',
+    actionPanelBody: 'A etapa final agora deixa prontidao, progresso, falhas e download no mesmo lugar.',
+    readyLabel: 'Pronto',
+    pendingLabel: 'Pendente',
     byokTitle: 'Informe sua chave da API Gemini',
     byokDescription: 'Este app roda totalmente no navegador e usa a sua própria chave Gemini para traduzir.',
     apiKeyPlaceholder: 'Cole aqui sua chave da API Gemini',
@@ -350,6 +395,50 @@ function buildTranslationJobs(doc: Document, transUnits: Element[]) {
   return jobs;
 }
 
+function BrandMark({ className }: { className?: string }) {
+  return (
+    <div
+      className={cn(
+        'relative flex items-center justify-center rounded-[1.6rem] bg-slate-950 p-[1px] shadow-[0_18px_60px_rgba(15,23,42,0.18)]',
+        className,
+      )}
+    >
+      <div className="absolute inset-0 rounded-[inherit] bg-[linear-gradient(135deg,#38bdf8_0%,#2563eb_58%,#0f172a_100%)]" />
+      <div className="relative flex h-full w-full items-center justify-center overflow-hidden rounded-[calc(1.6rem-1px)] bg-[radial-gradient(circle_at_top,#0f172a_0%,#111827_55%,#020617_100%)]">
+        <div className="absolute inset-[18%] rounded-[1.2rem] border border-white/12" />
+        <div className="absolute h-[68%] w-[68%] rounded-full border border-cyan-300/45" />
+        <div className="absolute h-[52%] w-[52%] rounded-full border border-sky-200/35" />
+        <div className="absolute h-2.5 w-2.5 rounded-full bg-cyan-300 shadow-[0_0_20px_rgba(125,211,252,0.7)]" />
+        <div className="absolute left-[20%] top-[24%] h-[18%] w-[18%] rounded-md border border-white/15 bg-white/6 backdrop-blur-sm" />
+        <div className="absolute right-[20%] bottom-[24%] h-[18%] w-[18%] rounded-md border border-white/15 bg-white/6 backdrop-blur-sm" />
+        <svg viewBox="0 0 64 64" className="relative h-[58%] w-[58%]" aria-hidden="true">
+          <defs>
+            <linearGradient id="brandMarkStroke" x1="14" y1="12" x2="50" y2="52" gradientUnits="userSpaceOnUse">
+              <stop stopColor="#E0F2FE" />
+              <stop offset="1" stopColor="#7DD3FC" />
+            </linearGradient>
+          </defs>
+          <path
+            d="M20 20H31C33.2091 20 35 21.7909 35 24V28C35 30.2091 33.2091 32 31 32H20C17.7909 32 16 30.2091 16 28V24C16 21.7909 17.7909 20 20 20Z"
+            stroke="url(#brandMarkStroke)"
+            strokeWidth="3"
+            fill="none"
+          />
+          <path
+            d="M33 32H44C46.2091 32 48 33.7909 48 36V40C48 42.2091 46.2091 44 44 44H33C30.7909 44 29 42.2091 29 40V36C29 33.7909 30.7909 32 33 32Z"
+            stroke="url(#brandMarkStroke)"
+            strokeWidth="3"
+            fill="none"
+          />
+          <path d="M29 28L35 32" stroke="#38BDF8" strokeWidth="3" strokeLinecap="round" />
+          <path d="M24 26H27" stroke="#E2E8F0" strokeWidth="3" strokeLinecap="round" />
+          <path d="M37 38H40" stroke="#E2E8F0" strokeWidth="3" strokeLinecap="round" />
+        </svg>
+      </div>
+    </div>
+  );
+}
+
 function LanguageSelector({
   selected,
   onChange,
@@ -442,6 +531,7 @@ function LanguageSelector({
 }
 
 export default function App() {
+  const shouldReduceMotion = useReducedMotion();
   const [uiLocale, setUiLocale] = useState<UiLocale>(() => {
     const stored = localStorage.getItem('ui_locale');
     return stored === 'pt-BR' ? 'pt-BR' : 'en';
@@ -456,6 +546,16 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
 
   const copy = COPY[uiLocale];
+  const trustItems = [
+    { label: copy.trustBrowserOnly, icon: ShieldCheck },
+    { label: copy.trustStructureSafe, icon: FileCog },
+    { label: copy.trustNoFallbacks, icon: Sparkles },
+  ];
+  const readinessItems = [
+    { label: copy.byokTitle, ready: apiKey.trim().length > 0 },
+    { label: copy.uploadTitle, ready: Boolean(file) },
+    { label: copy.targetLanguageTitle, ready: Boolean(targetLang.code) },
+  ];
 
   useEffect(() => {
     localStorage.setItem('gemini_api_key', apiKey);
@@ -622,46 +722,92 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col font-sans">
-      <header className="bg-white border-b border-gray-200 px-6 py-4 shadow-sm">
-        <div className="max-w-4xl mx-auto flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
-          <div className="flex items-center gap-4 min-w-0">
-            <div className="w-12 h-12 shrink-0 rounded-2xl bg-gradient-to-br from-sky-400 via-blue-500 to-slate-900 p-[1px] shadow-lg shadow-blue-100">
-              <div className="flex h-full w-full items-center justify-center rounded-2xl bg-slate-950 text-white">
-                <Globe className="w-6 h-6" />
-              </div>
+    <MotionConfig reducedMotion="user">
+      <div className="relative min-h-screen overflow-hidden bg-[linear-gradient(180deg,#f5fbff_0%,#f8fafc_36%,#eef2ff_100%)] font-sans text-slate-900">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(56,189,248,0.18),transparent_30%),radial-gradient(circle_at_top_right,rgba(37,99,235,0.14),transparent_24%)]" />
+
+        <header className="relative border-b border-white/70 bg-white/75 px-6 py-6 shadow-[0_20px_60px_rgba(15,23,42,0.06)] backdrop-blur-xl">
+          <div className="max-w-5xl mx-auto flex flex-col gap-6">
+            <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+              <motion.div
+                initial={shouldReduceMotion ? undefined : { opacity: 0, y: 18 }}
+                animate={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+                className="min-w-0"
+              >
+                <span className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-white/90 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.26em] text-sky-700 shadow-sm">
+                  <Sparkles className="h-3.5 w-3.5" />
+                  {copy.heroBadge}
+                </span>
+
+                <div className="mt-5 flex items-start gap-4">
+                  <BrandMark className="h-14 w-14 shrink-0" />
+                  <div className="min-w-0">
+                    <h1 className="font-display text-4xl leading-none text-slate-950 sm:text-5xl">{copy.appTitle}</h1>
+                    <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-600 sm:text-base">{copy.appSubtitle}</p>
+                  </div>
+                </div>
+
+                <div className="mt-5 flex flex-wrap gap-3">
+                  {trustItems.map(({ label, icon: Icon }) => (
+                    <div
+                      key={label}
+                      className="inline-flex items-center gap-2 rounded-full border border-slate-200/80 bg-white/90 px-4 py-2 text-sm text-slate-700 shadow-[0_10px_30px_rgba(15,23,42,0.05)]"
+                    >
+                      <Icon className="h-4 w-4 text-sky-600" />
+                      <span>{label}</span>
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
+
+              <motion.div
+                initial={shouldReduceMotion ? undefined : { opacity: 0, x: 14 }}
+                animate={shouldReduceMotion ? undefined : { opacity: 1, x: 0 }}
+                transition={{ duration: 0.45, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
+                className="w-full rounded-[1.75rem] border border-slate-200/80 bg-white/90 p-4 shadow-[0_18px_50px_rgba(15,23,42,0.08)] lg:max-w-xs"
+              >
+                <label className="block text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 mb-3">
+                  {copy.uiLanguageLabel}
+                </label>
+                <select
+                  value={uiLocale}
+                  onChange={(event) => setUiLocale(event.target.value as UiLocale)}
+                  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
+                >
+                  {UI_LOCALES.map((locale) => (
+                    <option key={locale.code} value={locale.code}>
+                      {locale.label}
+                    </option>
+                  ))}
+                </select>
+              </motion.div>
             </div>
-            <div className="min-w-0">
-              <h1 className="text-xl font-bold leading-tight text-gray-900 sm:text-2xl">{copy.appTitle}</h1>
-              <p className="mt-1 max-w-2xl text-sm leading-6 text-gray-500">{copy.appSubtitle}</p>
+          </div>
+        </header>
+
+        <main className="relative flex-1 max-w-5xl w-full mx-auto p-6 flex flex-col gap-8 mt-4">
+        <motion.section
+          initial={shouldReduceMotion ? undefined : { opacity: 0, y: 16 }}
+          animate={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
+          transition={{ duration: 0.45, delay: 0.12, ease: [0.22, 1, 0.36, 1] }}
+          className="rounded-[2rem] border border-slate-200/80 bg-white/85 p-8 shadow-[0_24px_70px_rgba(15,23,42,0.08)] backdrop-blur-xl"
+        >
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.26em] text-sky-700">{copy.byokTitle}</p>
+              <h2 className="mt-3 text-2xl font-semibold text-slate-950">{copy.keyInputLabel}</h2>
+              <p className="mt-3 text-sm leading-7 text-slate-600">{copy.byokDescription}</p>
+            </div>
+            <div className="rounded-2xl border border-sky-100 bg-sky-50 p-3 text-sky-700">
+              <KeyRound className="h-5 w-5" />
             </div>
           </div>
 
-          <div className="w-full md:w-52 md:shrink-0">
-            <label className="block text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">
-              {copy.uiLanguageLabel}
+          <div className="mt-6 space-y-3 rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-sm">
+            <label className="block text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
+              {copy.keyInputLabel}
             </label>
-            <select
-              value={uiLocale}
-              onChange={(event) => setUiLocale(event.target.value as UiLocale)}
-              className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              {UI_LOCALES.map((locale) => (
-                <option key={locale.code} value={locale.code}>
-                  {locale.label}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-      </header>
-
-      <main className="flex-1 max-w-4xl w-full mx-auto p-6 flex flex-col gap-8 mt-4">
-        <section className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
-          <h2 className="text-lg font-semibold text-gray-900 mb-2">{copy.byokTitle}</h2>
-          <p className="text-sm text-gray-500 mb-4">{copy.byokDescription}</p>
-
-          <div className="space-y-3">
             <input
               type="password"
               value={apiKey}
@@ -670,28 +816,46 @@ export default function App() {
                 setError(null);
               }}
               placeholder={copy.apiKeyPlaceholder}
-              className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-slate-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
             />
-            <div className="flex items-center justify-between gap-4 text-sm">
-              <p className="text-gray-500">{copy.localStorageNote}</p>
+            <div className="flex flex-col gap-3 text-sm sm:flex-row sm:items-center sm:justify-between">
+              <p className="max-w-2xl text-slate-500 leading-6">{copy.localStorageNote}</p>
               <button
                 type="button"
                 onClick={() => setApiKey('')}
-                className="text-blue-600 hover:underline font-medium whitespace-nowrap"
+                className="inline-flex items-center justify-center rounded-full border border-slate-200 px-4 py-2 font-medium text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 whitespace-nowrap"
               >
                 {copy.clearKey}
               </button>
             </div>
           </div>
-        </section>
+        </motion.section>
 
-        <section className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">{copy.uploadTitle}</h2>
+        <motion.section
+          initial={shouldReduceMotion ? undefined : { opacity: 0, y: 16 }}
+          animate={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
+          transition={{ duration: 0.45, delay: 0.16, ease: [0.22, 1, 0.36, 1] }}
+          className="rounded-[2rem] border border-slate-200/80 bg-white/85 p-8 shadow-[0_24px_70px_rgba(15,23,42,0.08)] backdrop-blur-xl"
+        >
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.26em] text-sky-700">{copy.uploadTitle}</p>
+              <h2 className="mt-3 text-2xl font-semibold text-slate-950">{copy.uploadPrompt}</h2>
+              <p className="mt-3 text-sm leading-7 text-slate-600">{copy.uploadHelp}</p>
+            </div>
+            <div className="rounded-2xl border border-sky-100 bg-sky-50 p-3 text-sky-700">
+              <UploadCloud className="h-5 w-5" />
+            </div>
+          </div>
 
-          <div
+          <motion.div
+            whileHover={shouldReduceMotion ? undefined : { y: -2 }}
+            transition={{ duration: 0.18 }}
             className={cn(
-              'border-2 border-dashed rounded-xl p-10 flex flex-col items-center justify-center transition-colors cursor-pointer',
-              file ? 'border-green-400 bg-green-50' : 'border-gray-300 hover:border-blue-400 hover:bg-blue-50',
+              'mt-6 border-2 border-dashed rounded-[1.75rem] p-10 flex flex-col items-center justify-center transition-colors cursor-pointer text-center',
+              file
+                ? 'border-emerald-300 bg-[linear-gradient(180deg,#ecfdf5_0%,#f8fafc_100%)]'
+                : 'border-sky-200 bg-[linear-gradient(180deg,#f8fbff_0%,#eef6ff_100%)] hover:border-sky-400',
             )}
             onClick={() => document.getElementById('file-upload')?.click()}
             onDragOver={(event) => event.preventDefault()}
@@ -716,119 +880,193 @@ export default function App() {
               }}
             />
 
-            {file ? (
-              <>
-                <CheckCircle className="w-12 h-12 text-green-500 mb-3" />
-                <p className="text-green-800 font-medium text-lg">{file.name}</p>
-                <p className="text-green-600 text-sm mt-1">{(file.size / 1024).toFixed(1)} KB</p>
-                <button
-                  className="mt-4 text-sm text-blue-600 hover:underline"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    resetCurrentFile();
-                  }}
+            <AnimatePresence mode="wait">
+              {file ? (
+                <motion.div
+                  key="file-loaded"
+                  initial={shouldReduceMotion ? undefined : { opacity: 0, y: 12 }}
+                  animate={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
+                  exit={shouldReduceMotion ? undefined : { opacity: 0, y: -12 }}
+                  transition={{ duration: 0.22 }}
                 >
-                  {copy.replaceFile}
-                </button>
-              </>
-            ) : (
-              <>
-                <UploadCloud className="w-12 h-12 text-gray-400 mb-3" />
-                <p className="text-gray-700 font-medium text-lg">{copy.uploadPrompt}</p>
-                <p className="text-gray-500 text-sm mt-1">{copy.uploadHelp}</p>
-              </>
-            )}
-          </div>
-        </section>
+                  <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-emerald-500/12 text-emerald-600">
+                    <CheckCircle className="h-8 w-8" />
+                  </div>
+                  <p className="mt-5 break-words text-xl font-semibold text-slate-900">{file.name}</p>
+                  <p className="mt-2 text-sm text-slate-500">{(file.size / 1024).toFixed(1)} KB</p>
+                  <button
+                    className="mt-5 inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 transition hover:border-slate-300 hover:bg-slate-50"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      resetCurrentFile();
+                    }}
+                  >
+                    {copy.replaceFile}
+                  </button>
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="file-empty"
+                  initial={shouldReduceMotion ? undefined : { opacity: 0, y: 12 }}
+                  animate={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
+                  exit={shouldReduceMotion ? undefined : { opacity: 0, y: -12 }}
+                  transition={{ duration: 0.22 }}
+                >
+                  <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-sky-500/10 text-sky-600">
+                    <UploadCloud className="h-8 w-8" />
+                  </div>
+                  <p className="mt-5 text-xl font-semibold text-slate-900">{copy.uploadPrompt}</p>
+                  <p className="mt-2 text-sm leading-6 text-slate-500">{copy.uploadHelp}</p>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.div>
+        </motion.section>
 
-        <section className={cn('bg-white rounded-2xl shadow-sm border border-gray-200 p-8 transition-opacity', !file && 'opacity-50 pointer-events-none')}>
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">{copy.targetLanguageTitle}</h2>
-          <LanguageSelector
-            selected={targetLang}
-            onChange={setTargetLang}
-            searchPlaceholder={copy.searchLanguagePlaceholder}
-            emptyState={copy.noLanguagesFound}
-          />
-        </section>
-
-        <section
+        <motion.section
+          initial={shouldReduceMotion ? undefined : { opacity: 0, y: 16 }}
+          animate={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
+          transition={{ duration: 0.45, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
           className={cn(
-            'bg-white rounded-2xl shadow-sm border border-gray-200 p-8 transition-opacity',
-            (!file || !apiKey.trim()) && 'opacity-50 pointer-events-none',
+            'rounded-[2rem] border border-slate-200/80 bg-white/85 p-8 shadow-[0_24px_70px_rgba(15,23,42,0.08)] backdrop-blur-xl transition-opacity',
+            !file && 'opacity-60',
           )}
         >
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">{copy.translateTitle}</h2>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.26em] text-sky-700">{copy.targetLanguageTitle}</p>
+              <h2 className="mt-3 text-2xl font-semibold text-slate-950">{targetLang.name}</h2>
+              <p className="mt-3 text-sm leading-7 text-slate-600">{copy.languagePanelHint}</p>
+            </div>
+            <div className="rounded-2xl border border-sky-100 bg-sky-50 p-3 text-sky-700">
+              <Languages className="h-5 w-5" />
+            </div>
+          </div>
 
-          {!isTranslating && !translatedFileUrl && (
-            <button
-              onClick={handleTranslate}
-              disabled={!file || !apiKey.trim()}
-              className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-lg transition-colors shadow-md flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Globe className="w-5 h-5" />
-              {startButtonLabel}
-            </button>
+          <div className="mt-6">
+            <LanguageSelector
+              selected={targetLang}
+              onChange={setTargetLang}
+              searchPlaceholder={copy.searchLanguagePlaceholder}
+              emptyState={copy.noLanguagesFound}
+            />
+          </div>
+        </motion.section>
+
+        <motion.section
+          initial={shouldReduceMotion ? undefined : { opacity: 0, y: 16 }}
+          animate={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
+          transition={{ duration: 0.45, delay: 0.24, ease: [0.22, 1, 0.36, 1] }}
+          className={cn(
+            'rounded-[2rem] border border-slate-200/80 bg-white/90 p-8 shadow-[0_24px_70px_rgba(15,23,42,0.08)] backdrop-blur-xl transition-opacity',
+            (!file || !apiKey.trim()) && 'opacity-80',
           )}
-
-          {isTranslating && (
-            <div className="w-full p-6 bg-blue-50 rounded-xl border border-blue-100 flex flex-col items-center justify-center">
-              <Loader2 className="w-10 h-10 text-blue-600 animate-spin mb-4" />
-              <p className="text-blue-900 font-medium text-lg mb-2">{statusText || copy.translating}</p>
-              <div className="w-full max-w-md bg-blue-200 rounded-full h-2.5 mb-1 overflow-hidden">
-                <div
-                  className="bg-blue-600 h-2.5 rounded-full transition-all duration-300 ease-out"
-                  style={{ width: `${progress}%` }}
-                />
-              </div>
-              <p className="text-blue-700 text-sm font-medium">
-                {formatMessage(copy.progressDone, { progress: Math.round(progress) })}
+        >
+          <div className="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
+            <div className="max-w-xl">
+              <p className="text-xs font-semibold uppercase tracking-[0.26em] text-sky-700">{copy.translateTitle}</p>
+              <h2 className="mt-3 text-3xl font-semibold text-slate-950">{copy.actionPanelTitle}</h2>
+              <p className="mt-3 text-sm leading-7 text-slate-600">
+                {copy.actionPanelBody}
               </p>
-            </div>
-          )}
 
-          {error && (
-            <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-              <div>
-                <h3 className="text-red-800 font-medium">{copy.translationErrorTitle}</h3>
-                <p className="text-red-600 text-sm mt-1">{error}</p>
-                <button
-                  onClick={() => setError(null)}
-                  className="mt-2 text-sm text-red-700 hover:underline font-medium"
+              <div className="mt-6 space-y-3">
+                {readinessItems.map((item) => (
+                  <div
+                    key={item.label}
+                    className={cn(
+                      'flex items-center justify-between rounded-2xl border px-4 py-3 text-sm',
+                      item.ready ? 'border-emerald-200 bg-emerald-50 text-emerald-900' : 'border-slate-200 bg-slate-50 text-slate-600',
+                    )}
+                  >
+                    <span className="font-medium">{item.label}</span>
+                    <span className="text-xs font-semibold uppercase tracking-[0.18em]">
+                      {item.ready ? copy.readyLabel : copy.pendingLabel}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="w-full rounded-[1.6rem] border border-slate-200 bg-[linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] p-5 xl:max-w-xl">
+              {!isTranslating && !translatedFileUrl && (
+                <motion.button
+                  whileHover={shouldReduceMotion ? undefined : { y: -2 }}
+                  whileTap={shouldReduceMotion ? undefined : { scale: 0.985 }}
+                  transition={{ type: 'spring', stiffness: 380, damping: 28 }}
+                  onClick={handleTranslate}
+                  disabled={!file || !apiKey.trim()}
+                  className="w-full py-4 bg-[linear-gradient(135deg,#0f172a_0%,#1d4ed8_48%,#38bdf8_100%)] text-white rounded-[1.3rem] font-bold text-lg shadow-[0_20px_60px_rgba(37,99,235,0.35)] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {copy.tryAgain}
-                </button>
-              </div>
+                  <Globe className="w-5 h-5" />
+                  {startButtonLabel}
+                </motion.button>
+              )}
+
+              {isTranslating && (
+                <div className="w-full p-6 bg-blue-50 rounded-[1.4rem] border border-blue-100 flex flex-col items-center justify-center">
+                  <Loader2 className="w-10 h-10 text-blue-600 animate-spin mb-4" />
+                  <p className="text-blue-900 font-medium text-lg mb-2 text-center">{statusText || copy.translating}</p>
+                  <div className="w-full max-w-md bg-blue-200 rounded-full h-2.5 mb-1 overflow-hidden">
+                    <motion.div
+                      className="bg-[linear-gradient(90deg,#0f172a_0%,#2563eb_45%,#38bdf8_100%)] h-2.5 rounded-full"
+                      animate={{ width: `${progress}%` }}
+                      transition={{ duration: shouldReduceMotion ? 0 : 0.3, ease: 'easeOut' }}
+                      style={{ width: `${progress}%` }}
+                    />
+                  </div>
+                  <p className="text-blue-700 text-sm font-medium">
+                    {formatMessage(copy.progressDone, { progress: Math.round(progress) })}
+                  </p>
+                </div>
+              )}
+
+              {error && (
+                <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-[1.4rem] flex items-start gap-3">
+                  <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <h3 className="text-red-800 font-medium">{copy.translationErrorTitle}</h3>
+                    <p className="text-red-600 text-sm mt-1">{error}</p>
+                    <button
+                      onClick={() => setError(null)}
+                      className="mt-2 text-sm text-red-700 hover:underline font-medium"
+                    >
+                      {copy.tryAgain}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {translatedFileUrl && !isTranslating && (
+                <div className="w-full p-8 bg-green-50 rounded-[1.4rem] border border-green-200 flex flex-col items-center justify-center text-center">
+                  <div className="w-16 h-16 bg-green-100 rounded-3xl flex items-center justify-center mb-4">
+                    <CheckCircle className="w-8 h-8 text-green-600" />
+                  </div>
+                  <h3 className="text-green-900 font-bold text-xl mb-2">{copy.successTitle}</h3>
+                  <p className="text-green-700 mb-6">{successBody}</p>
+
+                  <a
+                    href={translatedFileUrl}
+                    download={`translated_${targetLang.code}_${file?.name}`}
+                    className="px-8 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-bold text-lg transition-colors shadow-md flex items-center justify-center gap-2"
+                  >
+                    <Download className="w-5 h-5" />
+                    {copy.downloadButton}
+                  </a>
+
+                  <button
+                    onClick={resetCurrentFile}
+                    className="mt-4 text-green-700 hover:underline text-sm font-medium"
+                  >
+                    {copy.translateAnotherFile}
+                  </button>
+                </div>
+              )}
             </div>
-          )}
-
-          {translatedFileUrl && !isTranslating && (
-            <div className="w-full p-8 bg-green-50 rounded-xl border border-green-200 flex flex-col items-center justify-center text-center">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
-                <CheckCircle className="w-8 h-8 text-green-600" />
-              </div>
-              <h3 className="text-green-900 font-bold text-xl mb-2">{copy.successTitle}</h3>
-              <p className="text-green-700 mb-6">{successBody}</p>
-
-              <a
-                href={translatedFileUrl}
-                download={`translated_${targetLang.code}_${file?.name}`}
-                className="px-8 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-bold text-lg transition-colors shadow-md flex items-center justify-center gap-2"
-              >
-                <Download className="w-5 h-5" />
-                {copy.downloadButton}
-              </a>
-
-              <button
-                onClick={resetCurrentFile}
-                className="mt-4 text-green-700 hover:underline text-sm font-medium"
-              >
-                {copy.translateAnotherFile}
-              </button>
-            </div>
-          )}
-        </section>
+          </div>
+        </motion.section>
       </main>
-    </div>
+      </div>
+    </MotionConfig>
   );
 }
